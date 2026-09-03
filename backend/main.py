@@ -1,4 +1,9 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from backend.database import get_db
+from backend.models import Transaction
 
 app = FastAPI()
 
@@ -8,16 +13,6 @@ def home():
     return {"message": "ClearLedger API is running"}
 
 @app.get("/transactions")
-def transactions():
-    return [
-        {
-            "merchant": "Chipotle",
-            "amount": 14.72,
-            "category": "Dining"
-        },
-        {
-            "merchant": "Spotify",
-            "amount": 11.99,
-            "category": "Entertainment"
-        }
-    ]
+def get_transactions(db: Session = Depends(get_db)):
+    statement = select(Transaction)
+    return db.scalars(statement).all()
