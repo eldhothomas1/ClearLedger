@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from backend.database import Base, DATABASE_URL
-from backend import models  # noqa: F401
+from backend import models
 
 
 config = context.config

@@ -5,11 +5,11 @@ import pytest
 
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient
 
-from backend.database import Base, SessionLocal, engine  # noqa: E402
-from backend.main import app  # noqa: E402
-from backend.models import Transaction  # noqa: E402, F401
+from backend.database import Base, SessionLocal, engine
+from backend.main import app
+from backend.models import Transaction
 
 
 Base.metadata.create_all(bind=engine)

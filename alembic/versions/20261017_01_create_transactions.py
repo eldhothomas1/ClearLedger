@@ -1,10 +1,3 @@
-"""Create transactions table.
-
-Revision ID: 20261017_01
-Revises:
-Create Date: 2026-10-17
-"""
-
 from alembic import op
 import sqlalchemy as sa
 

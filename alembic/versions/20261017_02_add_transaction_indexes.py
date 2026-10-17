@@ -1,10 +1,3 @@
-"""Add transaction filter indexes.
-
-Revision ID: 20261017_02
-Revises: 20261017_01
-Create Date: 2026-10-17
-"""
-
 from alembic import op
 
 

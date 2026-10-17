@@ -11,7 +11,6 @@ load_dotenv()
 
 
 def build_database_url() -> str | URL:
-    """Build the SQLAlchemy connection URL from environment variables."""
     if database_url := os.getenv("DATABASE_URL"):
         return database_url
 
@@ -42,7 +41,6 @@ class Base(DeclarativeBase):
 
 
 def get_db():
-    """Provide one database session for the lifetime of an API request."""
     db = SessionLocal()
     try:
         yield db
