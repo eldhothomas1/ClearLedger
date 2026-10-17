@@ -8,7 +8,13 @@ from backend import models
 
 
 config = context.config
-config.set_main_option("sqlalchemy.url", str(DATABASE_URL).replace("%", "%%"))
+
+if isinstance(DATABASE_URL, str):
+    alembic_url = DATABASE_URL
+else:
+    alembic_url = DATABASE_URL.render_as_string(hide_password=False)
+
+config.set_main_option("sqlalchemy.url", alembic_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
