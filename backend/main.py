@@ -1,18 +1,26 @@
-from fastapi import Depends, FastAPI
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 
-from backend.database import get_db
-from backend.models import Transaction
-
-app = FastAPI()
+from backend.routers import analytics, transactions
 
 
-@app.get("/")
+app = FastAPI(
+    title="ClearLedger API",
+    description="REST API for importing, managing, and analyzing financial transactions.",
+    version="0.2.0",
+)
+
+app.include_router(transactions.router)
+app.include_router(analytics.router)
+
+
+@app.get("/", tags=["System"])
 def home():
-    return {"message": "ClearLedger API is running"}
+    return {
+        "message": "ClearLedger API is running",
+        "documentation": "/docs",
+    }
 
-@app.get("/transactions")
-def get_transactions(db: Session = Depends(get_db)):
-    statement = select(Transaction)
-    return db.scalars(statement).all()
+
+@app.get("/health", tags=["System"])
+def health_check():
+    return {"status": "healthy"}
