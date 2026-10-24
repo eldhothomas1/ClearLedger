@@ -1,144 +1,139 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { deleteTransaction, getSummary, getTransactions } from "./api";
+import CategoryBreakdown from "./components/CategoryBreakdown";
+import ImportPanel from "./components/ImportPanel";
+import SummaryCards from "./components/SummaryCards";
+import TransactionFilters from "./components/TransactionFilters";
+import TransactionForm from "./components/TransactionForm";
+import TransactionTable from "./components/TransactionTable";
+import type { SpendingSummary, Transaction, TransactionFilters as FilterValues } from "./types";
 
-type SpendingSummary = {
-  transaction_count: number;
-  total_amount: string;
-  average_amount: string;
+const pageSize = 10;
+const emptyFilters: FilterValues = {
+  merchant: "",
+  category: "",
+  dateFrom: "",
+  dateTo: "",
 };
-
-type Transaction = {
-  id: number;
-  date: string;
-  merchant: string;
-  amount: string;
-  category: string | null;
-};
-
-type TransactionList = {
-  items: Transaction[];
-};
-
-const API_URL = "http://127.0.0.1:8001";
-
-function formatCurrency(value: string) {
-  return Number(value).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-}
-
-function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function App() {
   const [summary, setSummary] = useState<SpendingSummary | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [total, setTotal] = useState(0);
+  const [filters, setFilters] = useState(emptyFilters);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [refreshCount, setRefreshCount] = useState(0);
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [summaryData, transactionData] = await Promise.all([
+        getSummary(filters),
+        getTransactions(filters, pageSize, (page - 1) * pageSize),
+      ]);
+      setSummary(summaryData);
+      setTransactions(transactionData.items);
+      setTotal(transactionData.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, page]);
 
   useEffect(() => {
-    async function loadDashboard() {
-      try {
-        const [summaryResponse, transactionsResponse] = await Promise.all([
-          fetch(`${API_URL}/analytics/summary`),
-          fetch(`${API_URL}/transactions?limit=5`),
-        ]);
-
-        if (!summaryResponse.ok || !transactionsResponse.ok) {
-          throw new Error("Unable to load dashboard");
-        }
-
-        const summaryData: SpendingSummary = await summaryResponse.json();
-        const transactionData: TransactionList =
-          await transactionsResponse.json();
-
-        setSummary(summaryData);
-        setTransactions(transactionData.items);
-      } catch {
-        setError("Start the ClearLedger API to view your dashboard.");
-      }
-    }
-
     loadDashboard();
-  }, []);
+  }, [loadDashboard, refreshCount]);
+
+  function refreshDashboard(nextMessage: string) {
+    setMessage(nextMessage);
+    setError("");
+    setPage(1);
+    setShowForm(false);
+    setRefreshCount((count) => count + 1);
+  }
+
+  function applyFilters(nextFilters: FilterValues) {
+    setFilters(nextFilters);
+    setPage(1);
+    setMessage("");
+  }
+
+  async function removeTransaction(transaction: Transaction) {
+    const confirmed = window.confirm(`Delete the ${transaction.merchant} transaction?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteTransaction(transaction.id);
+      refreshDashboard("Transaction deleted.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete transaction");
+    }
+  }
 
   return (
-    <main className="page">
-      <header className="hero">
-        <p className="eyebrow">Personal finance analytics</p>
-        <h1>ClearLedger</h1>
-        <p className="intro">
-          Import transactions, review spending, and understand where your money
-          goes.
-        </p>
+    <div className="app-shell">
+      <header className="topbar">
+        <a className="brand" href="#top">ClearLedger</a>
+        <nav>
+          <a href="#transactions">Transactions</a>
+          <a href="#import">Import</a>
+          <button className="primary-button" type="button" onClick={() => setShowForm(true)}>
+            Add transaction
+          </button>
+        </nav>
       </header>
 
-      <section className="summary" aria-label="Spending summary">
-        <article className="summary-card">
-          <p>Transactions</p>
-          <strong>{summary?.transaction_count ?? "—"}</strong>
-        </article>
-        <article className="summary-card">
-          <p>Total spending</p>
-          <strong>{summary ? formatCurrency(summary.total_amount) : "—"}</strong>
-        </article>
-        <article className="summary-card">
-          <p>Average transaction</p>
-          <strong>
-            {summary ? formatCurrency(summary.average_amount) : "—"}
-          </strong>
-        </article>
-      </section>
-
-      {error && <p className="error-message">{error}</p>}
-
-      <section className="transactions-section">
-        <div className="section-heading">
+      <main className="page" id="top">
+        <section className="hero">
           <div>
-            <p className="eyebrow">Activity</p>
-            <h2>Recent transactions</h2>
+            <p className="eyebrow">Financial overview</p>
+            <h1>Your spending, made clear.</h1>
+            <p className="intro">
+              Review transactions, import statement data, and understand where your money goes.
+            </p>
           </div>
-          <span>Latest 5</span>
+          <button className="hero-button" type="button" onClick={() => setShowForm(true)}>
+            Add transaction
+          </button>
+        </section>
+
+        {message && <div className="notice success-notice">{message}</div>}
+        {error && <div className="notice error-notice">{error}. Make sure the API is running on port 8001.</div>}
+
+        <SummaryCards summary={summary} />
+
+        {showForm && (
+          <TransactionForm onSaved={refreshDashboard} onCancel={() => setShowForm(false)} />
+        )}
+
+        <div className="dashboard-grid">
+          <CategoryBreakdown categories={summary?.by_category ?? []} />
+          <ImportPanel onImported={refreshDashboard} />
         </div>
 
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Merchant</th>
-                <th>Category</th>
-                <th>Date</th>
-                <th className="amount">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.length === 0 ? (
-                <tr>
-                  <td className="empty-state" colSpan={4}>
-                    No transactions to display.
-                  </td>
-                </tr>
-              ) : (
-                transactions.map((transaction) => (
-                  <tr key={transaction.id}>
-                    <td className="merchant">{transaction.merchant}</td>
-                    <td>{transaction.category ?? "Uncategorized"}</td>
-                    <td>{formatDate(transaction.date)}</td>
-                    <td className="amount">
-                      {formatCurrency(transaction.amount)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+        <section id="transactions" className="transactions-section">
+          <TransactionFilters filters={filters} onApply={applyFilters} />
+          <TransactionTable
+            transactions={transactions}
+            total={total}
+            page={page}
+            pageSize={pageSize}
+            loading={loading}
+            onPageChange={setPage}
+            onDelete={removeTransaction}
+          />
+        </section>
+
+        <div id="import" />
+      </main>
+    </div>
   );
 }
 
