@@ -47,7 +47,7 @@ export default function ImportPanel({ onImported }: Props) {
   }
 
   return (
-    <section className="panel import-panel">
+    <section className="panel import-panel" id="import">
       <div>
         <p className="eyebrow">CSV import</p>
         <h2>Upload a bank statement</h2>

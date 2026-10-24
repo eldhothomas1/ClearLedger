@@ -130,8 +130,6 @@ function App() {
             onDelete={removeTransaction}
           />
         </section>
-
-        <div id="import" />
       </main>
     </div>
   );
