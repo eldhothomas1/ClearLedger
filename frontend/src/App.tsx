@@ -1,4 +1,42 @@
+import { useEffect, useState } from "react";
+
+type SpendingSummary = {
+  transaction_count: number;
+  total_amount: string;
+  average_amount: string;
+};
+
+const API_URL = "http://127.0.0.1:8001";
+
+function formatCurrency(value: string) {
+  return Number(value).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+}
+
 function App() {
+  const [summary, setSummary] = useState<SpendingSummary | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadSummary() {
+      try {
+        const response = await fetch(`${API_URL}/analytics/summary`);
+
+        if (!response.ok) {
+          throw new Error("Unable to load spending summary");
+        }
+
+        setSummary(await response.json());
+      } catch {
+        setError("Start the ClearLedger API to view your spending summary.");
+      }
+    }
+
+    loadSummary();
+  }, []);
+
   return (
     <main className="page">
       <header className="hero">
@@ -10,17 +48,24 @@ function App() {
         </p>
       </header>
 
-      <section className="status-card">
-        <div>
-          <p className="label">Frontend status</p>
-          <h2>Dashboard setup complete</h2>
-        </div>
-        <span className="status">In progress</span>
-        <p>
-          The React interface is ready. The next step is connecting it to the
-          FastAPI transaction and analytics endpoints.
-        </p>
+      <section className="summary" aria-label="Spending summary">
+        <article className="summary-card">
+          <p>Transactions</p>
+          <strong>{summary?.transaction_count ?? "—"}</strong>
+        </article>
+        <article className="summary-card">
+          <p>Total spending</p>
+          <strong>{summary ? formatCurrency(summary.total_amount) : "—"}</strong>
+        </article>
+        <article className="summary-card">
+          <p>Average transaction</p>
+          <strong>
+            {summary ? formatCurrency(summary.average_amount) : "—"}
+          </strong>
+        </article>
       </section>
+
+      {error && <p className="error-message">{error}</p>}
     </main>
   );
 }
