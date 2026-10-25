@@ -45,3 +45,14 @@ export type ImportResult = {
   skipped_duplicates: number;
   errors: Array<{ row: number; message: string }>;
 };
+
+export type User = {
+  id: number;
+  email: string;
+  created_at: string;
+};
+
+export type TokenResponse = {
+  access_token: string;
+  token_type: string;
+};

@@ -1,12 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
-import { deleteTransaction, getSummary, getTransactions } from "./api";
+import {
+  clearAccessToken,
+  deleteTransaction,
+  getCurrentUser,
+  getSummary,
+  getTransactions,
+  hasAccessToken,
+} from "./api";
+import AuthPage from "./components/AuthPage";
 import CategoryBreakdown from "./components/CategoryBreakdown";
 import ImportPanel from "./components/ImportPanel";
 import SummaryCards from "./components/SummaryCards";
 import TransactionFilters from "./components/TransactionFilters";
 import TransactionForm from "./components/TransactionForm";
 import TransactionTable from "./components/TransactionTable";
-import type { SpendingSummary, Transaction, TransactionFilters as FilterValues } from "./types";
+import type {
+  SpendingSummary,
+  Transaction,
+  TransactionFilters as FilterValues,
+  User,
+} from "./types";
 
 const pageSize = 10;
 const emptyFilters: FilterValues = {
@@ -16,7 +29,12 @@ const emptyFilters: FilterValues = {
   dateTo: "",
 };
 
-function App() {
+type DashboardProps = {
+  user: User;
+  onLogout: () => void;
+};
+
+function Dashboard({ user, onLogout }: DashboardProps) {
   const [summary, setSummary] = useState<SpendingSummary | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
@@ -87,6 +105,10 @@ function App() {
           <button className="primary-button" type="button" onClick={() => setShowForm(true)}>
             Add transaction
           </button>
+          <div className="account-menu">
+            <span>{user.email}</span>
+            <button className="text-button" type="button" onClick={onLogout}>Log out</button>
+          </div>
         </nav>
       </header>
 
@@ -105,7 +127,7 @@ function App() {
         </section>
 
         {message && <div className="notice success-notice">{message}</div>}
-        {error && <div className="notice error-notice">{error}. Make sure the API is running on port 8001.</div>}
+        {error && <div className="notice error-notice">{error}</div>}
 
         <SummaryCards summary={summary} />
 
@@ -133,6 +155,45 @@ function App() {
       </main>
     </div>
   );
+}
+
+function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    async function restoreSession() {
+      if (!hasAccessToken()) {
+        setCheckingSession(false);
+        return;
+      }
+
+      try {
+        setUser(await getCurrentUser());
+      } catch {
+        clearAccessToken();
+      } finally {
+        setCheckingSession(false);
+      }
+    }
+
+    restoreSession();
+  }, []);
+
+  function logout() {
+    clearAccessToken();
+    setUser(null);
+  }
+
+  if (checkingSession) {
+    return <div className="session-loading">Loading ClearLedger...</div>;
+  }
+
+  if (!user) {
+    return <AuthPage onAuthenticated={setUser} />;
+  }
+
+  return <Dashboard user={user} onLogout={logout} />;
 }
 
 export default App;

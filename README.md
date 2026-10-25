@@ -7,6 +7,9 @@ ClearLedger is a full-stack personal finance application for importing, managing
 ## Current features
 
 - Create, view, filter, paginate, and delete transactions from the dashboard
+- Register, sign in, restore sessions, and log out through the React interface
+- Protect financial data with Argon2 password hashing and JWT authentication
+- Isolate transactions, imports, and analytics by user account
 - Import CSV statements with row-level validation and duplicate detection
 - Filter transactions by merchant, category, and date range
 - View transaction totals, average spending, and category breakdowns
@@ -79,6 +82,12 @@ sample_data/
    Copy-Item .env.example .env
    ```
 
+   Generate a JWT secret and save the result as `JWT_SECRET_KEY` in `.env`.
+
+   ```powershell
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+
 5. Create a PostgreSQL database named `clearledger` and apply the migrations.
 
    ```powershell
@@ -120,6 +129,9 @@ date,merchant,amount,category
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Check API availability |
+| `POST` | `/auth/register` | Create an account |
+| `POST` | `/auth/login` | Sign in and receive an access token |
+| `GET` | `/auth/me` | Retrieve the signed-in user |
 | `POST` | `/transactions` | Create a transaction |
 | `GET` | `/transactions` | List and filter transactions |
 | `POST` | `/transactions/import` | Import transactions from CSV |

@@ -5,12 +5,27 @@ import type {
   TransactionFilters,
   TransactionInput,
   TransactionList,
+  TokenResponse,
+  User,
 } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001";
+const tokenKey = "clearledger_access_token";
+
+export function hasAccessToken() {
+  return Boolean(localStorage.getItem(tokenKey));
+}
+
+export function clearAccessToken() {
+  localStorage.removeItem(tokenKey);
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, options);
+  const headers = new Headers(options?.headers);
+  const token = localStorage.getItem(tokenKey);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!response.ok) {
     const data = await response.json().catch(() => null);
@@ -24,6 +39,29 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return response.json();
+}
+
+export async function register(email: string, password: string) {
+  return request<User>("/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function login(email: string, password: string) {
+  const form = new URLSearchParams({ username: email, password });
+  const result = await request<TokenResponse>("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form,
+  });
+  localStorage.setItem(tokenKey, result.access_token);
+  return result;
+}
+
+export function getCurrentUser() {
+  return request<User>("/auth/me");
 }
 
 function addDateFilters(params: URLSearchParams, filters: TransactionFilters) {

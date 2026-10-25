@@ -7,7 +7,7 @@ from backend.routers import analytics, auth, transactions
 app = FastAPI(
     title="ClearLedger API",
     description="REST API for importing, managing, and analyzing financial transactions.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(

@@ -72,6 +72,23 @@ button:disabled {
   gap: 24px;
 }
 
+.account-menu {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-left: 18px;
+  border-left: 1px solid #d4dfd8;
+}
+
+.account-menu span {
+  max-width: 180px;
+  overflow: hidden;
+  color: #637168;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .topbar nav a {
   color: #52645a;
   font-size: 0.9rem;
@@ -485,6 +502,88 @@ td {
   scroll-margin-top: 90px;
 }
 
+.auth-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+  min-height: 100vh;
+}
+
+.auth-intro {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px clamp(40px, 8vw, 110px) 90px;
+  color: #f8fbf9;
+  background: #173e2c;
+}
+
+.auth-intro .brand,
+.auth-intro .eyebrow {
+  color: #9ed3b6;
+}
+
+.auth-intro h1 {
+  max-width: 620px;
+}
+
+.auth-intro .intro {
+  color: #d3e2d9;
+}
+
+.auth-card {
+  align-self: center;
+  width: min(440px, calc(100% - 48px));
+  margin: 48px auto;
+  padding: 34px;
+  border: 1px solid #d9e4dd;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 55px rgba(28, 58, 42, 0.1);
+}
+
+.auth-form {
+  display: grid;
+  gap: 17px;
+  margin-top: 28px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 7px;
+  color: #52645a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.auth-submit {
+  margin-top: 5px;
+  padding: 13px 17px;
+}
+
+.auth-switch {
+  margin: 23px 0 0;
+  color: #6c7972;
+  font-size: 0.87rem;
+  text-align: center;
+}
+
+.auth-switch button {
+  margin-left: 5px;
+  padding: 0;
+  color: #226b49;
+  border: 0;
+  font-weight: 750;
+  background: transparent;
+}
+
+.session-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  color: #617068;
+  font-weight: 650;
+}
+
 @media (max-width: 900px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -498,10 +597,28 @@ td {
   .filter-actions {
     grid-column: 1 / -1;
   }
+
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-intro {
+    min-height: 360px;
+    padding: 35px 32px 55px;
+  }
 }
 
 @media (max-width: 700px) {
   .topbar nav a {
+    display: none;
+  }
+
+  .account-menu {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .account-menu span {
     display: none;
   }
 
@@ -534,5 +651,11 @@ td {
 
   .pagination {
     justify-content: space-between;
+  }
+
+  .auth-card {
+    width: min(440px, calc(100% - 32px));
+    margin: 30px auto;
+    padding: 27px 22px;
   }
 }
