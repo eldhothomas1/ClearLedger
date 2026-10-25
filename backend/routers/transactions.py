@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import Transaction
+from backend.models import Transaction, User
 from backend.schemas import (
     ImportErrorDetail,
     ImportResponse,
@@ -17,6 +17,7 @@ from backend.schemas import (
     TransactionResponse,
     TransactionUpdate,
 )
+from backend.security import get_current_user
 
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
@@ -26,8 +27,12 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 def create_transaction(
     transaction_data: TransactionCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    transaction = Transaction(**transaction_data.model_dump())
+    transaction = Transaction(
+        **transaction_data.model_dump(),
+        user_id=current_user.id,
+    )
     db.add(transaction)
     db.commit()
     db.refresh(transaction)
@@ -43,8 +48,9 @@ def list_transactions(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    filters = []
+    filters = [Transaction.user_id == current_user.id]
     if category:
         filters.append(func.lower(Transaction.category) == category.lower())
     if merchant:
@@ -70,6 +76,7 @@ def list_transactions(
 async def import_transactions(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")
@@ -111,6 +118,7 @@ async def import_transactions(
         duplicate_key = (data.date, data.merchant.lower(), data.amount)
         exists_in_database = db.scalar(
             select(Transaction.id).where(
+                Transaction.user_id == current_user.id,
                 Transaction.date == data.date,
                 func.lower(Transaction.merchant) == data.merchant.lower(),
                 Transaction.amount == data.amount,
@@ -121,7 +129,7 @@ async def import_transactions(
             continue
 
         seen_in_file.add(duplicate_key)
-        db.add(Transaction(**data.model_dump()))
+        db.add(Transaction(**data.model_dump(), user_id=current_user.id))
         imported += 1
 
     db.commit()
@@ -132,16 +140,29 @@ async def import_transactions(
     )
 
 
-def get_transaction_or_404(transaction_id: int, db: Session) -> Transaction:
-    transaction = db.get(Transaction, transaction_id)
+def get_transaction_or_404(
+    transaction_id: int,
+    user_id: int,
+    db: Session,
+) -> Transaction:
+    transaction = db.scalar(
+        select(Transaction).where(
+            Transaction.id == transaction_id,
+            Transaction.user_id == user_id,
+        )
+    )
     if transaction is None:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
 
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    return get_transaction_or_404(transaction_id, db)
+def get_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_transaction_or_404(transaction_id, current_user.id, db)
 
 
 @router.patch("/{transaction_id}", response_model=TransactionResponse)
@@ -149,12 +170,13 @@ def update_transaction(
     transaction_id: int,
     transaction_data: TransactionUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     updates = transaction_data.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=400, detail="Provide at least one field to update")
 
-    transaction = get_transaction_or_404(transaction_id, db)
+    transaction = get_transaction_or_404(transaction_id, current_user.id, db)
     for field, value in updates.items():
         setattr(transaction, field, value)
 
@@ -164,8 +186,12 @@ def update_transaction(
 
 
 @router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = get_transaction_or_404(transaction_id, db)
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    transaction = get_transaction_or_404(transaction_id, current_user.id, db)
     db.delete(transaction)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

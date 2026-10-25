@@ -6,8 +6,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import Transaction
+from backend.models import Transaction, User
 from backend.schemas import CategorySummary, SpendingSummary
+from backend.security import get_current_user
 
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -23,8 +24,9 @@ def spending_summary(
     date_from: date | None = None,
     date_to: date | None = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    filters = []
+    filters = [Transaction.user_id == current_user.id]
     if date_from:
         filters.append(Transaction.date >= date_from)
     if date_to:
