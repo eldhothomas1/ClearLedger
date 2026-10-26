@@ -109,3 +109,26 @@ def test_spending_summary(client):
     assert body["total_amount"] == "100.00"
     assert body["average_amount"] == "50.00"
     assert body["by_category"][0]["category"] == "Groceries"
+
+
+def test_monthly_spending(client):
+    client.post(
+        "/transactions",
+        json=sample_transaction(date="2026-09-12", amount="40.00"),
+    )
+    client.post(
+        "/transactions",
+        json=sample_transaction(date="2026-10-04", amount="25.00"),
+    )
+    client.post(
+        "/transactions",
+        json=sample_transaction(date="2026-10-20", amount="35.00"),
+    )
+
+    response = client.get("/analytics/monthly")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"month": "2026-09", "transaction_count": 1, "total_amount": "40.00"},
+        {"month": "2026-10", "transaction_count": 2, "total_amount": "60.00"},
+    ]

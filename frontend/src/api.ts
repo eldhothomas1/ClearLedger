@@ -1,5 +1,6 @@
 import type {
   ImportResult,
+  MonthlySummary,
   SpendingSummary,
   Transaction,
   TransactionFilters,
@@ -73,6 +74,12 @@ export function getSummary(filters: TransactionFilters) {
   const params = new URLSearchParams();
   addDateFilters(params, filters);
   return request<SpendingSummary>(`/analytics/summary?${params}`);
+}
+
+export function getMonthlySummary(filters: TransactionFilters) {
+  const params = new URLSearchParams();
+  addDateFilters(params, filters);
+  return request<MonthlySummary[]>(`/analytics/monthly?${params}`);
 }
 
 export function getTransactions(

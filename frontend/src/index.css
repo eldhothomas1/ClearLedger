@@ -258,6 +258,49 @@ h2 {
   margin-top: 42px;
 }
 
+.trend-panel {
+  margin-top: 42px;
+}
+
+.trend-list {
+  display: grid;
+  gap: 15px;
+}
+
+.trend-row {
+  display: grid;
+  grid-template-columns: 90px minmax(120px, 1fr) 100px 110px;
+  align-items: center;
+  gap: 16px;
+  color: #52645a;
+  font-size: 0.86rem;
+}
+
+.trend-row strong {
+  color: #26372e;
+  text-align: right;
+}
+
+.trend-row small {
+  color: #7d8982;
+  text-align: right;
+}
+
+.trend-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7eee9;
+}
+
+.trend-track span {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: #287b55;
+}
+
 .panel {
   padding: 25px;
   border-radius: 16px;
@@ -638,6 +681,15 @@ td {
   .transaction-form,
   .filter-bar {
     grid-template-columns: 1fr;
+  }
+
+  .trend-row {
+    grid-template-columns: 72px 1fr 82px;
+    gap: 10px;
+  }
+
+  .trend-row small {
+    display: none;
   }
 
   .filter-actions {

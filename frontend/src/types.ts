@@ -26,6 +26,12 @@ export type SpendingSummary = {
   by_category: CategorySummary[];
 };
 
+export type MonthlySummary = {
+  month: string;
+  transaction_count: number;
+  total_amount: string;
+};
+
 export type TransactionInput = {
   date: string;
   merchant: string;

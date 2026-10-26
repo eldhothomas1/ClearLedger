@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import Transaction, User
-from backend.schemas import CategorySummary, SpendingSummary
+from backend.schemas import CategorySummary, MonthlySummary, SpendingSummary
 from backend.security import get_current_user
 
 
@@ -65,3 +65,40 @@ def spending_summary(
             for row in category_rows
         ],
     )
+
+
+@router.get("/monthly", response_model=list[MonthlySummary])
+def monthly_spending(
+    date_from: date | None = None,
+    date_to: date | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    filters = [Transaction.user_id == current_user.id]
+    if date_from:
+        filters.append(Transaction.date >= date_from)
+    if date_to:
+        filters.append(Transaction.date <= date_to)
+
+    rows = db.execute(
+        select(Transaction.date, Transaction.amount)
+        .where(*filters)
+        .order_by(Transaction.date)
+    ).all()
+
+    months: dict[str, dict[str, int | Decimal]] = {}
+    for row in rows:
+        month = row.date.strftime("%Y-%m")
+        if month not in months:
+            months[month] = {"transaction_count": 0, "total_amount": Decimal("0")}
+        months[month]["transaction_count"] += 1
+        months[month]["total_amount"] += row.amount
+
+    return [
+        MonthlySummary(
+            month=month,
+            transaction_count=values["transaction_count"],
+            total_amount=as_money(values["total_amount"]),
+        )
+        for month, values in months.items()
+    ]

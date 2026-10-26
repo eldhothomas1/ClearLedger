@@ -113,6 +113,12 @@ class CategorySummary(BaseModel):
     total_amount: Decimal
 
 
+class MonthlySummary(BaseModel):
+    month: str
+    transaction_count: int
+    total_amount: Decimal
+
+
 class SpendingSummary(BaseModel):
     transaction_count: int
     total_amount: Decimal

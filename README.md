@@ -13,6 +13,7 @@ ClearLedger is a full-stack personal finance application for importing, managing
 - Import CSV statements with row-level validation and duplicate detection
 - Filter transactions by merchant, category, and date range
 - View transaction totals, average spending, and category breakdowns
+- Compare spending totals across months
 - Validate API requests and responses with Pydantic
 - Manage the PostgreSQL schema with Alembic migrations
 - Run isolated backend tests and frontend builds through GitHub Actions
@@ -139,6 +140,7 @@ date,merchant,amount,category
 | `PATCH` | `/transactions/{id}` | Update selected fields |
 | `DELETE` | `/transactions/{id}` | Delete a transaction |
 | `GET` | `/analytics/summary` | Get totals and category breakdowns |
+| `GET` | `/analytics/monthly` | Get monthly spending totals |
 
 ## Tests
 
@@ -157,7 +159,6 @@ npm run build
 ## Roadmap
 
 - Merchant normalization and configurable categorization rules
-- Monthly income and expense trends
 - Budget tracking
 - User authentication and account-level data isolation
 - Containerized local environment and cloud deployment

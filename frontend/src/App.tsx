@@ -3,6 +3,7 @@ import {
   clearAccessToken,
   deleteTransaction,
   getCurrentUser,
+  getMonthlySummary,
   getSummary,
   getTransactions,
   hasAccessToken,
@@ -10,12 +11,14 @@ import {
 import AuthPage from "./components/AuthPage";
 import CategoryBreakdown from "./components/CategoryBreakdown";
 import ImportPanel from "./components/ImportPanel";
+import MonthlyTrend from "./components/MonthlyTrend";
 import SummaryCards from "./components/SummaryCards";
 import TransactionFilters from "./components/TransactionFilters";
 import TransactionForm from "./components/TransactionForm";
 import TransactionTable from "./components/TransactionTable";
 import type {
   SpendingSummary,
+  MonthlySummary,
   Transaction,
   TransactionFilters as FilterValues,
   User,
@@ -36,6 +39,7 @@ type DashboardProps = {
 
 function Dashboard({ user, onLogout }: DashboardProps) {
   const [summary, setSummary] = useState<SpendingSummary | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState(emptyFilters);
@@ -51,11 +55,13 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     setError("");
 
     try {
-      const [summaryData, transactionData] = await Promise.all([
+      const [summaryData, monthlyData, transactionData] = await Promise.all([
         getSummary(filters),
+        getMonthlySummary(filters),
         getTransactions(filters, pageSize, (page - 1) * pageSize),
       ]);
       setSummary(summaryData);
+      setMonthlySummary(monthlyData);
       setTransactions(transactionData.items);
       setTotal(transactionData.total);
     } catch (err) {
@@ -130,6 +136,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         {error && <div className="notice error-notice">{error}</div>}
 
         <SummaryCards summary={summary} />
+
+        <MonthlyTrend months={monthlySummary} />
 
         {showForm && (
           <TransactionForm onSaved={refreshDashboard} onCancel={() => setShowForm(false)} />
