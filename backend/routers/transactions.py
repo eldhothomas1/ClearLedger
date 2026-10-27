@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import Transaction, User
+from backend.processing import normalize_transaction
 from backend.schemas import (
     ImportErrorDetail,
     ImportResponse,
@@ -29,8 +30,15 @@ def create_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    transaction_values = transaction_data.model_dump()
+    merchant, category = normalize_transaction(
+        transaction_values["merchant"],
+        transaction_values["category"],
+    )
+    transaction_values["merchant"] = merchant
+    transaction_values["category"] = category
     transaction = Transaction(
-        **transaction_data.model_dump(),
+        **transaction_values,
         user_id=current_user.id,
     )
     db.add(transaction)
@@ -115,6 +123,10 @@ async def import_transactions(
             errors.append(ImportErrorDetail(row=row_number, message=first_error["msg"]))
             continue
 
+        merchant, category = normalize_transaction(data.merchant, data.category)
+        data.merchant = merchant
+        data.category = category
+
         duplicate_key = (data.date, data.merchant.lower(), data.amount)
         exists_in_database = db.scalar(
             select(Transaction.id).where(
@@ -177,6 +189,15 @@ def update_transaction(
         raise HTTPException(status_code=400, detail="Provide at least one field to update")
 
     transaction = get_transaction_or_404(transaction_id, current_user.id, db)
+    if "merchant" in updates:
+        merchant, category = normalize_transaction(
+            updates["merchant"],
+            updates.get("category", transaction.category),
+        )
+        updates["merchant"] = merchant
+        if "category" not in updates and transaction.category is None:
+            updates["category"] = category
+
     for field, value in updates.items():
         setattr(transaction, field, value)
 

@@ -11,6 +11,7 @@ ClearLedger is a full-stack personal finance application for importing, managing
 - Protect financial data with Argon2 password hashing and JWT authentication
 - Isolate transactions, imports, and analytics by user account
 - Import CSV statements with row-level validation and duplicate detection
+- Normalize common bank statement merchant names and fill missing categories
 - Filter transactions by merchant, category, and date range
 - View transaction totals, average spending, and category breakdowns
 - Compare spending totals across months
@@ -37,6 +38,7 @@ backend/
 ├── main.py
 ├── database.py
 ├── models.py
+├── processing.py
 ├── schemas.py
 └── routers/
     ├── transactions.py
@@ -125,6 +127,8 @@ date,merchant,amount,category
 2026-10-16,Spotify,11.99,Entertainment
 ```
 
+Common statement descriptors for Amazon, Chipotle, Spotify, Trader Joe's, Whole Foods, and Uber are normalized during creation and import. A default category is added only when the category field is empty.
+
 ## API overview
 
 | Method | Endpoint | Purpose |
@@ -158,7 +162,7 @@ npm run build
 
 ## Roadmap
 
-- Merchant normalization and configurable categorization rules
+- Configurable categorization rules
 - Budget tracking
 - User authentication and account-level data isolation
 - Containerized local environment and cloud deployment

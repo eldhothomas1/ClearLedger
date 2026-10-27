@@ -71,6 +71,20 @@ def test_list_filters_and_pagination(client):
     assert body["items"][0]["merchant"] == "Trader Joe's"
 
 
+def test_create_normalizes_merchant_and_category(client):
+    response = client.post(
+        "/transactions",
+        json=sample_transaction(
+            merchant="AMZN Mktp US*AB123",
+            category=None,
+        ),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["merchant"] == "Amazon"
+    assert response.json()["category"] == "Shopping"
+
+
 def test_csv_import_reports_duplicates_and_invalid_rows(client):
     csv_data = (
         "date,merchant,amount,category\n"
@@ -89,6 +103,27 @@ def test_csv_import_reports_duplicates_and_invalid_rows(client):
     assert body["imported"] == 1
     assert body["skipped_duplicates"] == 1
     assert len(body["errors"]) == 1
+
+
+def test_csv_import_detects_merchant_alias_duplicates(client):
+    csv_data = (
+        "date,merchant,amount,category\n"
+        "2026-10-01,AMZN Mktp US*AB123,24.50,\n"
+        "2026-10-01,Amazon Marketplace,24.50,\n"
+    )
+
+    response = client.post(
+        "/transactions/import",
+        files={"file": ("transactions.csv", csv_data, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["imported"] == 1
+    assert response.json()["skipped_duplicates"] == 1
+
+    transactions = client.get("/transactions").json()["items"]
+    assert transactions[0]["merchant"] == "Amazon"
+    assert transactions[0]["category"] == "Shopping"
 
 
 def test_spending_summary(client):
