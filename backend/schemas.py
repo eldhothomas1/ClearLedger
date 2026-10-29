@@ -124,3 +124,33 @@ class SpendingSummary(BaseModel):
     total_amount: Decimal
     average_amount: Decimal
     by_category: list[CategorySummary]
+
+
+class BudgetInput(BaseModel):
+    month: str = Field(pattern=r"^\d{4}-\d{2}$")
+    category: str = Field(min_length=1, max_length=100)
+    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+
+    @field_validator("month")
+    @classmethod
+    def validate_month(cls, value: str) -> str:
+        datetime.strptime(value, "%Y-%m")
+        return value
+
+    @field_validator("category")
+    @classmethod
+    def clean_budget_category(cls, value: str) -> str:
+        cleaned = " ".join(value.split())
+        if not cleaned:
+            raise ValueError("category cannot be blank")
+        return cleaned.title()
+
+
+class BudgetResponse(BaseModel):
+    id: int
+    month: str
+    category: str
+    amount: Decimal
+    spent: Decimal
+    remaining: Decimal
+    percent_used: Decimal

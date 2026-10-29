@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from backend.database import Base, SessionLocal, engine
 from backend.main import app
-from backend.models import Transaction, User
+from backend.models import Budget, Transaction, User
 
 
 Base.metadata.create_all(bind=engine)
@@ -19,6 +19,7 @@ Base.metadata.create_all(bind=engine)
 @pytest.fixture(autouse=True)
 def reset_database():
     with SessionLocal() as db:
+        db.query(Budget).delete()
         db.query(Transaction).delete()
         db.query(User).delete()
         db.commit()

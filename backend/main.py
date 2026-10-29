@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import analytics, auth, transactions
+from backend.routers import analytics, auth, budgets, transactions
 
 
 app = FastAPI(
     title="ClearLedger API",
     description="REST API for importing, managing, and analyzing financial transactions.",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 app.add_middleware(
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(transactions.router)
 app.include_router(analytics.router)
+app.include_router(budgets.router)
 
 
 @app.get("/", tags=["System"])
