@@ -262,6 +262,72 @@ h2 {
   margin-top: 42px;
 }
 
+.budget-panel {
+  margin-top: 42px;
+  scroll-margin-top: 90px;
+}
+
+.budget-heading {
+  align-items: center;
+}
+
+.month-input {
+  width: auto;
+}
+
+.budget-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.budget-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.budget-row {
+  padding: 17px;
+  border: 1px solid #e0e9e3;
+  border-radius: 12px;
+  background: #fbfdfc;
+}
+
+.budget-summary,
+.budget-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.budget-summary span,
+.budget-footer small {
+  color: #6c7972;
+  font-size: 0.82rem;
+}
+
+.budget-track {
+  height: 9px;
+  margin: 13px 0 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7eee9;
+}
+
+.budget-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #48a878;
+}
+
+.budget-track.over-budget span {
+  background: #c65c52;
+}
+
 .trend-list {
   display: grid;
   gap: 15px;
@@ -678,6 +744,8 @@ td {
   }
 
   .summary-grid,
+  .budget-form,
+  .budget-list,
   .transaction-form,
   .filter-bar {
     grid-template-columns: 1fr;

@@ -32,6 +32,22 @@ export type MonthlySummary = {
   total_amount: string;
 };
 
+export type Budget = {
+  id: number;
+  month: string;
+  category: string;
+  amount: string;
+  spent: string;
+  remaining: string;
+  percent_used: string;
+};
+
+export type BudgetInput = {
+  month: string;
+  category: string;
+  amount: string;
+};
+
 export type TransactionInput = {
   date: string;
   merchant: string;

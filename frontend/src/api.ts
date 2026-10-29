@@ -1,4 +1,6 @@
 import type {
+  Budget,
+  BudgetInput,
   ImportResult,
   MonthlySummary,
   SpendingSummary,
@@ -63,6 +65,23 @@ export async function login(email: string, password: string) {
 
 export function getCurrentUser() {
   return request<User>("/auth/me");
+}
+
+export function getBudgets(month: string) {
+  const params = new URLSearchParams({ month });
+  return request<Budget[]>(`/budgets?${params}`);
+}
+
+export function saveBudget(budget: BudgetInput) {
+  return request<Budget>("/budgets", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(budget),
+  });
+}
+
+export function deleteBudget(id: number) {
+  return request<void>(`/budgets/${id}`, { method: "DELETE" });
 }
 
 function addDateFilters(params: URLSearchParams, filters: TransactionFilters) {

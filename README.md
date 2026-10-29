@@ -15,6 +15,7 @@ ClearLedger is a full-stack personal finance application for importing, managing
 - Filter transactions by merchant, category, and date range
 - View transaction totals, average spending, and category breakdowns
 - Compare spending totals across months
+- Set monthly category budgets and track spending progress
 - Validate API requests and responses with Pydantic
 - Manage the PostgreSQL schema with Alembic migrations
 - Run isolated backend tests and frontend builds through GitHub Actions
@@ -40,8 +41,11 @@ backend/
 ├── models.py
 ├── processing.py
 ├── schemas.py
+├── security.py
 └── routers/
+    ├── auth.py
     ├── transactions.py
+    ├── budgets.py
     └── analytics.py
 frontend/
 ├── src/
@@ -145,6 +149,9 @@ Common statement descriptors for Amazon, Chipotle, Spotify, Trader Joe's, Whole 
 | `DELETE` | `/transactions/{id}` | Delete a transaction |
 | `GET` | `/analytics/summary` | Get totals and category breakdowns |
 | `GET` | `/analytics/monthly` | Get monthly spending totals |
+| `GET` | `/budgets` | List monthly budgets with spending progress |
+| `PUT` | `/budgets` | Create or update a category budget |
+| `DELETE` | `/budgets/{id}` | Delete a budget |
 
 ## Tests
 
@@ -163,6 +170,4 @@ npm run build
 ## Roadmap
 
 - Configurable categorization rules
-- Budget tracking
-- User authentication and account-level data isolation
 - Containerized local environment and cloud deployment

@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   clearAccessToken,
+  deleteBudget,
   deleteTransaction,
+  getBudgets,
   getCurrentUser,
   getMonthlySummary,
   getSummary,
   getTransactions,
   hasAccessToken,
+  saveBudget,
 } from "./api";
 import AuthPage from "./components/AuthPage";
+import BudgetPanel from "./components/BudgetPanel";
 import CategoryBreakdown from "./components/CategoryBreakdown";
 import ImportPanel from "./components/ImportPanel";
 import MonthlyTrend from "./components/MonthlyTrend";
@@ -17,6 +21,8 @@ import TransactionFilters from "./components/TransactionFilters";
 import TransactionForm from "./components/TransactionForm";
 import TransactionTable from "./components/TransactionTable";
 import type {
+  Budget,
+  BudgetInput,
   SpendingSummary,
   MonthlySummary,
   Transaction,
@@ -25,6 +31,7 @@ import type {
 } from "./types";
 
 const pageSize = 10;
+const currentMonth = new Date().toISOString().slice(0, 7);
 const emptyFilters: FilterValues = {
   merchant: "",
   category: "",
@@ -40,6 +47,8 @@ type DashboardProps = {
 function Dashboard({ user, onLogout }: DashboardProps) {
   const [summary, setSummary] = useState<SpendingSummary | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [budgetMonth, setBudgetMonth] = useState(currentMonth);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState(emptyFilters);
@@ -55,13 +64,15 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     setError("");
 
     try {
-      const [summaryData, monthlyData, transactionData] = await Promise.all([
+      const [summaryData, monthlyData, budgetData, transactionData] = await Promise.all([
         getSummary(filters),
         getMonthlySummary(filters),
+        getBudgets(budgetMonth),
         getTransactions(filters, pageSize, (page - 1) * pageSize),
       ]);
       setSummary(summaryData);
       setMonthlySummary(monthlyData);
+      setBudgets(budgetData);
       setTransactions(transactionData.items);
       setTotal(transactionData.total);
     } catch (err) {
@@ -69,7 +80,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     } finally {
       setLoading(false);
     }
-  }, [filters, page]);
+  }, [filters, page, budgetMonth]);
 
   useEffect(() => {
     loadDashboard();
@@ -101,11 +112,31 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }
   }
 
+  async function storeBudget(budget: BudgetInput) {
+    try {
+      await saveBudget(budget);
+      refreshDashboard("Budget saved.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save budget");
+      throw err;
+    }
+  }
+
+  async function removeBudget(budget: Budget) {
+    try {
+      await deleteBudget(budget.id);
+      refreshDashboard("Budget removed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to remove budget");
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="#top">ClearLedger</a>
         <nav>
+          <a href="#budgets">Budgets</a>
           <a href="#transactions">Transactions</a>
           <a href="#import">Import</a>
           <button className="primary-button" type="button" onClick={() => setShowForm(true)}>
@@ -136,6 +167,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         {error && <div className="notice error-notice">{error}</div>}
 
         <SummaryCards summary={summary} />
+
+        <BudgetPanel
+          budgets={budgets}
+          month={budgetMonth}
+          onMonthChange={setBudgetMonth}
+          onSave={storeBudget}
+          onDelete={removeBudget}
+        />
 
         <MonthlyTrend months={monthlySummary} />
 
