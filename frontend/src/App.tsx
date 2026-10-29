@@ -31,7 +31,8 @@ import type {
 } from "./types";
 
 const pageSize = 10;
-const currentMonth = new Date().toISOString().slice(0, 7);
+const today = new Date();
+const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 const emptyFilters: FilterValues = {
   merchant: "",
   category: "",
