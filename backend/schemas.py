@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
@@ -27,8 +28,9 @@ class TokenResponse(BaseModel):
 class TransactionBase(BaseModel):
     date: Date
     merchant: str = Field(min_length=1, max_length=255)
-    amount: Decimal = Field(max_digits=12, decimal_places=2)
+    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     category: str | None = Field(default=None, max_length=100)
+    transaction_type: Literal["expense", "income"] = "expense"
 
     @field_validator("merchant")
     @classmethod
@@ -54,8 +56,9 @@ class TransactionCreate(TransactionBase):
 class TransactionUpdate(BaseModel):
     date: Date | None = None
     merchant: str | None = Field(default=None, min_length=1, max_length=255)
-    amount: Decimal | None = Field(default=None, max_digits=12, decimal_places=2)
+    amount: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
     category: str | None = Field(default=None, max_length=100)
+    transaction_type: Literal["expense", "income"] | None = None
 
     @field_validator("merchant")
     @classmethod
@@ -77,7 +80,7 @@ class TransactionUpdate(BaseModel):
 
     @model_validator(mode="after")
     def reject_null_required_fields(self):
-        for field in {"date", "merchant", "amount"} & self.model_fields_set:
+        for field in {"date", "merchant", "amount", "transaction_type"} & self.model_fields_set:
             if getattr(self, field) is None:
                 raise ValueError(f"{field} cannot be null")
         return self
@@ -116,13 +119,17 @@ class CategorySummary(BaseModel):
 class MonthlySummary(BaseModel):
     month: str
     transaction_count: int
-    total_amount: Decimal
+    income: Decimal
+    expenses: Decimal
+    net_cash_flow: Decimal
 
 
 class SpendingSummary(BaseModel):
     transaction_count: int
-    total_amount: Decimal
-    average_amount: Decimal
+    total_income: Decimal
+    total_expenses: Decimal
+    net_cash_flow: Decimal
+    average_expense: Decimal
     by_category: list[CategorySummary]
 
 

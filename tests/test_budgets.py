@@ -11,6 +11,14 @@ def test_budget_tracks_category_spending(client):
     client.post("/transactions", json=transaction("Dining", "40.00"))
     client.post("/transactions", json=transaction("Dining", "15.00"))
     client.post("/transactions", json=transaction("Groceries", "30.00"))
+    client.post(
+        "/transactions",
+        json={
+            **transaction("Dining", "500.00"),
+            "merchant": "Reimbursement",
+            "transaction_type": "income",
+        },
+    )
 
     response = client.put(
         "/budgets",

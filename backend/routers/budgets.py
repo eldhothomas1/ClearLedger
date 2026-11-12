@@ -44,6 +44,7 @@ def budget_responses(db: Session, budgets: list[Budget], user_id: int) -> list[B
             Transaction.amount,
         ).where(
             Transaction.user_id == user_id,
+            Transaction.transaction_type == "expense",
             Transaction.date >= first_month,
             Transaction.date < final_month,
             Transaction.category.is_not(None),

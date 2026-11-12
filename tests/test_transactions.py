@@ -1,3 +1,8 @@
+from io import BytesIO
+
+import pandas as pd
+
+
 def sample_transaction(**overrides):
     transaction = {
         "date": "2026-10-15",
@@ -71,6 +76,35 @@ def test_list_filters_and_pagination(client):
     assert body["items"][0]["merchant"] == "Trader Joe's"
 
 
+def test_transaction_type_filter_and_update(client):
+    transaction_id = client.post(
+        "/transactions",
+        json=sample_transaction(),
+    ).json()["id"]
+    client.post(
+        "/transactions",
+        json=sample_transaction(
+            merchant="Paycheck",
+            amount="800.00",
+            transaction_type="income",
+        ),
+    )
+
+    income_items = client.get(
+        "/transactions",
+        params={"transaction_type": "income"},
+    ).json()["items"]
+    updated = client.patch(
+        f"/transactions/{transaction_id}",
+        json={"transaction_type": "income", "amount": "50.00"},
+    )
+
+    assert len(income_items) == 1
+    assert income_items[0]["merchant"] == "Paycheck"
+    assert updated.json()["transaction_type"] == "income"
+    assert updated.json()["amount"] == "50.00"
+
+
 def test_create_normalizes_merchant_and_category(client):
     response = client.post(
         "/transactions",
@@ -135,14 +169,25 @@ def test_spending_summary(client):
             amount="60.00",
         ),
     )
+    client.post(
+        "/transactions",
+        json=sample_transaction(
+            merchant="Paycheck",
+            amount="500.00",
+            category="Income",
+            transaction_type="income",
+        ),
+    )
 
     response = client.get("/analytics/summary")
     body = response.json()
 
     assert response.status_code == 200
-    assert body["transaction_count"] == 2
-    assert body["total_amount"] == "100.00"
-    assert body["average_amount"] == "50.00"
+    assert body["transaction_count"] == 3
+    assert body["total_income"] == "500.00"
+    assert body["total_expenses"] == "100.00"
+    assert body["net_cash_flow"] == "400.00"
+    assert body["average_expense"] == "50.00"
     assert body["by_category"][0]["category"] == "Groceries"
 
 
@@ -150,6 +195,15 @@ def test_monthly_spending(client):
     client.post(
         "/transactions",
         json=sample_transaction(date="2026-09-12", amount="40.00"),
+    )
+    client.post(
+        "/transactions",
+        json=sample_transaction(
+            date="2026-10-01",
+            merchant="Paycheck",
+            amount="200.00",
+            transaction_type="income",
+        ),
     )
     client.post(
         "/transactions",
@@ -164,6 +218,58 @@ def test_monthly_spending(client):
 
     assert response.status_code == 200
     assert response.json() == [
-        {"month": "2026-09", "transaction_count": 1, "total_amount": "40.00"},
-        {"month": "2026-10", "transaction_count": 2, "total_amount": "60.00"},
+        {
+            "month": "2026-09",
+            "transaction_count": 1,
+            "income": "0.00",
+            "expenses": "40.00",
+            "net_cash_flow": "-40.00",
+        },
+        {
+            "month": "2026-10",
+            "transaction_count": 3,
+            "income": "200.00",
+            "expenses": "60.00",
+            "net_cash_flow": "140.00",
+        },
     ]
+
+
+def test_xlsx_import_supports_bank_column_names(client):
+    statement = pd.DataFrame(
+        [
+            {
+                "Posted Date": "2026-10-05",
+                "Description": "Whole Foods #104",
+                "Debit": "42.75",
+                "Credit": None,
+                "Category": "Groceries",
+            },
+            {
+                "Posted Date": "2026-10-06",
+                "Description": "Payroll Deposit",
+                "Debit": None,
+                "Credit": "1200.00",
+                "Category": "Income",
+            },
+        ]
+    )
+    file_data = BytesIO()
+    statement.to_excel(file_data, index=False)
+
+    response = client.post(
+        "/transactions/import",
+        files={
+            "file": (
+                "statement.xlsx",
+                file_data.getvalue(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["imported"] == 2
+    items = client.get("/transactions").json()["items"]
+    assert {item["transaction_type"] for item in items} == {"expense", "income"}
+    assert any(item["merchant"] == "Whole Foods" for item in items)

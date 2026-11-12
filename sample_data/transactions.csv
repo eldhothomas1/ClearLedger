@@ -1,4 +1,5 @@
-date,merchant,amount,category
-2026-10-01,Chipotle,14.72,Dining
-2026-10-02,Spotify,11.99,Entertainment
-2026-10-03,Trader Joe's,48.37,Groceries
+date,merchant,amount,category,transaction_type
+2026-10-01,Chipotle,14.72,Dining,expense
+2026-10-02,Spotify,11.99,Entertainment,expense
+2026-10-03,Trader Joe's,48.37,Groceries,expense
+2026-10-04,Payroll Deposit,1200.00,Income,income

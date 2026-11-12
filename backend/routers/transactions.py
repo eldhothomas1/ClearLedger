@@ -1,5 +1,3 @@
-import csv
-import io
 from datetime import date
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
@@ -8,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
+from backend.importer import load_statement, row_values
 from backend.models import Transaction, User
 from backend.processing import normalize_transaction
 from backend.schemas import (
@@ -51,6 +50,7 @@ def create_transaction(
 def list_transactions(
     category: str | None = None,
     merchant: str | None = None,
+    transaction_type: str | None = Query(default=None, pattern="^(expense|income)$"),
     date_from: date | None = None,
     date_to: date | None = None,
     limit: int = Query(default=50, ge=1, le=200),
@@ -63,6 +63,8 @@ def list_transactions(
         filters.append(func.lower(Transaction.category) == category.lower())
     if merchant:
         filters.append(Transaction.merchant.ilike(f"%{merchant}%"))
+    if transaction_type:
+        filters.append(Transaction.transaction_type == transaction_type)
     if date_from:
         filters.append(Transaction.date >= date_from)
     if date_to:
@@ -86,61 +88,73 @@ async def import_transactions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not file.filename or not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Only CSV files are supported")
-
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="File name is required")
     try:
-        contents = (await file.read()).decode("utf-8-sig")
-    except UnicodeDecodeError as exc:
-        raise HTTPException(status_code=400, detail="CSV must use UTF-8 encoding") from exc
-
-    reader = csv.DictReader(io.StringIO(contents))
-    required_columns = {"date", "merchant", "amount"}
-    if not reader.fieldnames or not required_columns.issubset(reader.fieldnames):
-        missing = sorted(required_columns - set(reader.fieldnames or []))
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required columns: {', '.join(missing)}",
-        )
+        rows = load_statement(file.filename, await file.read())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     imported = 0
     skipped_duplicates = 0
     errors: list[ImportErrorDetail] = []
     seen_in_file: set[tuple] = set()
+    validated: list[tuple[tuple, TransactionCreate]] = []
 
-    for row_number, row in enumerate(reader, start=2):
+    for row_number, row in enumerate(rows, start=2):
         try:
+            row = row_values(row)
             data = TransactionCreate.model_validate(
                 {
-                    "date": row.get("date"),
-                    "merchant": row.get("merchant"),
-                    "amount": row.get("amount"),
-                    "category": row.get("category") or None,
+                    **row,
                 }
             )
         except ValidationError as exc:
             first_error = exc.errors()[0]
             errors.append(ImportErrorDetail(row=row_number, message=first_error["msg"]))
             continue
+        except ValueError as exc:
+            errors.append(ImportErrorDetail(row=row_number, message=str(exc)))
+            continue
 
         merchant, category = normalize_transaction(data.merchant, data.category)
         data.merchant = merchant
         data.category = category
 
-        duplicate_key = (data.date, data.merchant.lower(), data.amount)
-        exists_in_database = db.scalar(
-            select(Transaction.id).where(
-                Transaction.user_id == current_user.id,
-                Transaction.date == data.date,
-                func.lower(Transaction.merchant) == data.merchant.lower(),
-                Transaction.amount == data.amount,
-            )
+        duplicate_key = (
+            data.date,
+            data.merchant.lower(),
+            data.amount,
+            data.transaction_type,
         )
-        if duplicate_key in seen_in_file or exists_in_database:
+        if duplicate_key in seen_in_file:
             skipped_duplicates += 1
             continue
 
         seen_in_file.add(duplicate_key)
+        validated.append((duplicate_key, data))
+
+    existing_keys: set[tuple] = set()
+    if validated:
+        dates = [data.date for _, data in validated]
+        existing_rows = db.execute(
+            select(
+                Transaction.date,
+                func.lower(Transaction.merchant),
+                Transaction.amount,
+                Transaction.transaction_type,
+            ).where(
+                Transaction.user_id == current_user.id,
+                Transaction.date >= min(dates),
+                Transaction.date <= max(dates),
+            )
+        ).all()
+        existing_keys = set(existing_rows)
+
+    for duplicate_key, data in validated:
+        if duplicate_key in existing_keys:
+            skipped_duplicates += 1
+            continue
         db.add(Transaction(**data.model_dump(), user_id=current_user.id))
         imported += 1
 

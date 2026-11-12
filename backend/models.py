@@ -38,6 +38,11 @@ class Transaction(Base):
     merchant: Mapped[str] = mapped_column(String(255), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    transaction_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="expense",
+    )
     user: Mapped[User | None] = relationship(back_populates="transactions")
 
 
