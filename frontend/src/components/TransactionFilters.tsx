@@ -11,6 +11,7 @@ const emptyFilters: FilterValues = {
   category: "",
   dateFrom: "",
   dateTo: "",
+  transactionType: "",
 };
 
 export default function TransactionFilters({ filters, onApply }: Props) {
@@ -47,6 +48,17 @@ export default function TransactionFilters({ filters, onApply }: Props) {
           onChange={(event) => updateField("category", event.target.value)}
           placeholder="e.g. Groceries"
         />
+      </label>
+      <label>
+        Type
+        <select
+          value={form.transactionType}
+          onChange={(event) => updateField("transactionType", event.target.value)}
+        >
+          <option value="">All</option>
+          <option value="expense">Expenses</option>
+          <option value="income">Income</option>
+        </select>
       </label>
       <label>
         From

@@ -38,6 +38,7 @@ const emptyFilters: FilterValues = {
   category: "",
   dateFrom: "",
   dateTo: "",
+  transactionType: "",
 };
 
 type DashboardProps = {
@@ -56,6 +57,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [refreshCount, setRefreshCount] = useState(0);
@@ -92,6 +94,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     setError("");
     setPage(1);
     setShowForm(false);
+    setEditingTransaction(null);
     setRefreshCount((count) => count + 1);
   }
 
@@ -111,6 +114,17 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to delete transaction");
     }
+  }
+
+  function openNewTransaction() {
+    setEditingTransaction(null);
+    setShowForm(true);
+  }
+
+  function editTransaction(transaction: Transaction) {
+    setEditingTransaction(transaction);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function storeBudget(budget: BudgetInput) {
@@ -140,7 +154,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           <a href="#budgets">Budgets</a>
           <a href="#transactions">Transactions</a>
           <a href="#import">Import</a>
-          <button className="primary-button" type="button" onClick={() => setShowForm(true)}>
+          <button className="primary-button" type="button" onClick={openNewTransaction}>
             Add transaction
           </button>
           <div className="account-menu">
@@ -159,7 +173,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               Review transactions, import statement data, and understand where your money goes.
             </p>
           </div>
-          <button className="hero-button" type="button" onClick={() => setShowForm(true)}>
+          <button className="hero-button" type="button" onClick={openNewTransaction}>
             Add transaction
           </button>
         </section>
@@ -180,7 +194,12 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         <MonthlyTrend months={monthlySummary} />
 
         {showForm && (
-          <TransactionForm onSaved={refreshDashboard} onCancel={() => setShowForm(false)} />
+          <TransactionForm
+            key={editingTransaction?.id ?? "new"}
+            transaction={editingTransaction}
+            onSaved={refreshDashboard}
+            onCancel={() => setShowForm(false)}
+          />
         )}
 
         <div className="dashboard-grid">
@@ -197,6 +216,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             pageSize={pageSize}
             loading={loading}
             onPageChange={setPage}
+            onEdit={editTransaction}
             onDelete={removeTransaction}
           />
         </section>

@@ -1,25 +1,37 @@
 import { useState, type FormEvent } from "react";
-import { createTransaction } from "../api";
-import type { TransactionInput } from "../types";
+import { createTransaction, updateTransaction } from "../api";
+import type { Transaction, TransactionInput } from "../types";
 
 type Props = {
   onSaved: (message: string) => void;
   onCancel: () => void;
+  transaction?: Transaction | null;
 };
 
-const emptyForm: TransactionInput = {
-  date: new Date().toISOString().slice(0, 10),
-  merchant: "",
-  amount: "",
-  category: "",
-};
+function initialForm(transaction?: Transaction | null): TransactionInput {
+  return transaction
+    ? {
+        date: transaction.date,
+        merchant: transaction.merchant,
+        amount: transaction.amount,
+        category: transaction.category ?? "",
+        transaction_type: transaction.transaction_type,
+      }
+    : {
+        date: new Date().toISOString().slice(0, 10),
+        merchant: "",
+        amount: "",
+        category: "",
+        transaction_type: "expense",
+      };
+}
 
-export default function TransactionForm({ onSaved, onCancel }: Props) {
-  const [form, setForm] = useState(emptyForm);
+export default function TransactionForm({ onSaved, onCancel, transaction }: Props) {
+  const [form, setForm] = useState(() => initialForm(transaction));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  function updateField(field: keyof TransactionInput, value: string) {
+  function updateField<K extends keyof TransactionInput>(field: K, value: TransactionInput[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -29,9 +41,14 @@ export default function TransactionForm({ onSaved, onCancel }: Props) {
     setError("");
 
     try {
-      await createTransaction(form);
-      setForm(emptyForm);
-      onSaved("Transaction added successfully.");
+      if (transaction) {
+        await updateTransaction(transaction.id, form);
+        onSaved("Transaction updated.");
+      } else {
+        await createTransaction(form);
+        setForm(initialForm());
+        onSaved("Transaction added successfully.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to add transaction");
     } finally {
@@ -44,7 +61,7 @@ export default function TransactionForm({ onSaved, onCancel }: Props) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">New record</p>
-          <h2>Add a transaction</h2>
+          <h2>{transaction ? "Edit transaction" : "Add a transaction"}</h2>
         </div>
         <button className="text-button" type="button" onClick={onCancel}>
           Close
@@ -52,6 +69,19 @@ export default function TransactionForm({ onSaved, onCancel }: Props) {
       </div>
 
       <form className="transaction-form" onSubmit={handleSubmit}>
+        <label>
+          Type
+          <select
+            value={form.transaction_type}
+            onChange={(event) => updateField(
+              "transaction_type",
+              event.target.value as TransactionInput["transaction_type"],
+            )}
+          >
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+        </label>
         <label>
           Date
           <input
@@ -93,7 +123,7 @@ export default function TransactionForm({ onSaved, onCancel }: Props) {
         <div className="form-actions">
           {error && <p className="form-error">{error}</p>}
           <button className="primary-button" disabled={saving}>
-            {saving ? "Saving..." : "Save transaction"}
+            {saving ? "Saving..." : transaction ? "Update transaction" : "Save transaction"}
           </button>
         </div>
       </form>

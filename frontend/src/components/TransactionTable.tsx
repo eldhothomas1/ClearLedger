@@ -8,6 +8,7 @@ type Props = {
   pageSize: number;
   loading: boolean;
   onPageChange: (page: number) => void;
+  onEdit: (transaction: Transaction) => void;
   onDelete: (transaction: Transaction) => void;
 };
 
@@ -26,6 +27,7 @@ export default function TransactionTable({
   pageSize,
   loading,
   onPageChange,
+  onEdit,
   onDelete,
 }: Props) {
   const lastPage = Math.max(1, Math.ceil(total / pageSize));
@@ -46,6 +48,7 @@ export default function TransactionTable({
             <tr>
               <th>Merchant</th>
               <th>Category</th>
+              <th>Type</th>
               <th>Date</th>
               <th className="amount">Amount</th>
               <th aria-label="Actions" />
@@ -54,20 +57,31 @@ export default function TransactionTable({
           <tbody>
             {loading ? (
               <tr>
-                <td className="empty-state" colSpan={5}>Loading transactions...</td>
+                <td className="empty-state" colSpan={6}>Loading transactions...</td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
-                <td className="empty-state" colSpan={5}>No transactions found.</td>
+                <td className="empty-state" colSpan={6}>No transactions found.</td>
               </tr>
             ) : (
               transactions.map((transaction) => (
                 <tr key={transaction.id}>
                   <td className="merchant">{transaction.merchant}</td>
                   <td><span className="category-tag">{transaction.category ?? "Uncategorized"}</span></td>
+                  <td><span className={`type-tag ${transaction.transaction_type}`}>{transaction.transaction_type}</span></td>
                   <td>{formatDate(transaction.date)}</td>
-                  <td className="amount">{formatCurrency(transaction.amount)}</td>
+                  <td className={`amount ${transaction.transaction_type}`}>
+                    {transaction.transaction_type === "income" ? "+" : "-"}
+                    {formatCurrency(transaction.amount)}
+                  </td>
                   <td className="action-cell">
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() => onEdit(transaction)}
+                    >
+                      Edit
+                    </button>
                     <button
                       className="delete-button"
                       type="button"

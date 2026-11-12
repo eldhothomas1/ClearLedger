@@ -113,6 +113,7 @@ export function getTransactions(
 
   if (filters.merchant) params.set("merchant", filters.merchant);
   if (filters.category) params.set("category", filters.category);
+  if (filters.transactionType) params.set("transaction_type", filters.transactionType);
   addDateFilters(params, filters);
 
   return request<TransactionList>(`/transactions?${params}`);
@@ -121,6 +122,17 @@ export function getTransactions(
 export function createTransaction(transaction: TransactionInput) {
   return request<Transaction>("/transactions", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...transaction,
+      category: transaction.category || null,
+    }),
+  });
+}
+
+export function updateTransaction(id: number, transaction: TransactionInput) {
+  return request<Transaction>(`/transactions/${id}`, {
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...transaction,

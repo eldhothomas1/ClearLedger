@@ -21,7 +21,7 @@ export default function ImportPanel({ onImported }: Props) {
 
   async function uploadFile() {
     if (!file) {
-      setError("Choose a CSV file first.");
+      setError("Choose a CSV or XLSX file first.");
       return;
     }
 
@@ -49,23 +49,23 @@ export default function ImportPanel({ onImported }: Props) {
   return (
     <section className="panel import-panel" id="import">
       <div>
-        <p className="eyebrow">CSV import</p>
+        <p className="eyebrow">Statement import</p>
         <h2>Upload a bank statement</h2>
         <p className="panel-copy">
-          Use columns named date, merchant, amount, and optionally category.
+          Upload CSV or Excel statements. Common date, description, debit, credit, and amount columns are recognized.
         </p>
       </div>
       <div className="upload-controls">
         <input
           ref={inputRef}
           className="file-input"
-          id="csv-file"
+          id="statement-file"
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={chooseFile}
         />
-        <label className="secondary-button file-label" htmlFor="csv-file">
-          {fileName || "Choose CSV"}
+        <label className="secondary-button file-label" htmlFor="statement-file">
+          {fileName || "Choose statement"}
         </label>
         <button className="primary-button" type="button" disabled={uploading} onClick={uploadFile}>
           {uploading ? "Importing..." : "Import file"}

@@ -14,14 +14,17 @@ function formatMonth(month: string) {
 }
 
 export default function MonthlyTrend({ months }: Props) {
-  const largestAmount = Math.max(...months.map((item) => Number(item.total_amount)), 0);
+  const largestAmount = Math.max(
+    ...months.flatMap((item) => [Number(item.income), Number(item.expenses)]),
+    0,
+  );
 
   return (
     <section className="panel trend-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Trend</p>
-          <h2>Monthly spending</h2>
+          <h2>Monthly cash flow</h2>
         </div>
         <span>{months.length} months</span>
       </div>
@@ -31,15 +34,26 @@ export default function MonthlyTrend({ months }: Props) {
       ) : (
         <div className="trend-list">
           {months.map((item) => {
-            const width = largestAmount ? (Number(item.total_amount) / largestAmount) * 100 : 0;
+            const incomeWidth = largestAmount ? (Number(item.income) / largestAmount) * 100 : 0;
+            const expenseWidth = largestAmount ? (Number(item.expenses) / largestAmount) * 100 : 0;
             return (
               <div className="trend-row" key={item.month}>
                 <span>{formatMonth(item.month)}</span>
-                <div className="trend-track">
-                  <span style={{ width: `${width}%` }} />
+                <div className="trend-bars">
+                  <div className="trend-track income-track">
+                    <span style={{ width: `${incomeWidth}%` }} />
+                  </div>
+                  <div className="trend-track expense-track">
+                    <span style={{ width: `${expenseWidth}%` }} />
+                  </div>
                 </div>
-                <strong>{formatCurrency(item.total_amount)}</strong>
-                <small>{item.transaction_count} transactions</small>
+                <div className="trend-amounts">
+                  <span>{formatCurrency(item.income)} in</span>
+                  <span>{formatCurrency(item.expenses)} out</span>
+                </div>
+                <strong className={Number(item.net_cash_flow) >= 0 ? "income-value" : "expense-value"}>
+                  {formatCurrency(item.net_cash_flow)}
+                </strong>
               </div>
             );
           })}

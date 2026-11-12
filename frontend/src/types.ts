@@ -4,6 +4,7 @@ export type Transaction = {
   merchant: string;
   amount: string;
   category: string | null;
+  transaction_type: "expense" | "income";
 };
 
 export type TransactionList = {
@@ -21,15 +22,19 @@ export type CategorySummary = {
 
 export type SpendingSummary = {
   transaction_count: number;
-  total_amount: string;
-  average_amount: string;
+  total_income: string;
+  total_expenses: string;
+  net_cash_flow: string;
+  average_expense: string;
   by_category: CategorySummary[];
 };
 
 export type MonthlySummary = {
   month: string;
   transaction_count: number;
-  total_amount: string;
+  income: string;
+  expenses: string;
+  net_cash_flow: string;
 };
 
 export type Budget = {
@@ -53,6 +58,7 @@ export type TransactionInput = {
   merchant: string;
   amount: string;
   category: string;
+  transaction_type: "expense" | "income";
 };
 
 export type TransactionFilters = {
@@ -60,6 +66,7 @@ export type TransactionFilters = {
   category: string;
   dateFrom: string;
   dateTo: string;
+  transactionType: string;
 };
 
 export type ImportResult = {
