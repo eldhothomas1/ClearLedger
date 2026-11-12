@@ -6,18 +6,20 @@ ClearLedger is a full-stack personal finance application for importing, managing
 
 ## Current features
 
-- Create, view, filter, paginate, and delete transactions from the dashboard
+- Create, edit, filter, paginate, and delete transactions from the dashboard
 - Register, sign in, restore sessions, and log out through the React interface
 - Protect financial data with Argon2 password hashing and JWT authentication
 - Isolate transactions, imports, and analytics by user account
-- Import CSV statements with row-level validation and duplicate detection
+- Import CSV and Excel statements through a Pandas validation pipeline
+- Recognize common bank column names and batch-check duplicate transactions
 - Normalize common bank statement merchant names and fill missing categories
-- Filter transactions by merchant, category, and date range
-- View transaction totals, average spending, and category breakdowns
-- Compare spending totals across months
+- Track and filter income and expenses separately
+- View income, expenses, net cash flow, and category breakdowns
+- Compare monthly income and expenses
 - Set monthly category budgets and track spending progress
 - Validate API requests and responses with Pydantic
 - Manage the PostgreSQL schema with Alembic migrations
+- Run the API and PostgreSQL together with Docker Compose
 - Run isolated backend tests and frontend builds through GitHub Actions
 - Use a responsive React and TypeScript interface on desktop and mobile
 
@@ -26,9 +28,11 @@ ClearLedger is a full-stack personal finance application for importing, managing
 - React, TypeScript, and Vite
 - Python 3.13
 - FastAPI and Pydantic
+- Pandas and OpenPyXL
 - PostgreSQL
 - SQLAlchemy 2.0
 - Alembic
+- Docker and Docker Compose
 - pytest
 - GitHub Actions
 
@@ -38,6 +42,7 @@ ClearLedger is a full-stack personal finance application for importing, managing
 backend/
 ├── main.py
 ├── database.py
+├── importer.py
 ├── models.py
 ├── processing.py
 ├── schemas.py
@@ -123,12 +128,12 @@ Open the dashboard at [http://127.0.0.1:5173](http://127.0.0.1:5173).
 
 ## CSV format
 
-CSV files must contain `date`, `merchant`, and `amount` columns. The `category` column is optional. Dates use the `YYYY-MM-DD` format.
+CSV and XLSX files can use common bank headings such as `date`, `posted date`, `merchant`, `description`, `amount`, `debit`, and `credit`. The `category` and `transaction_type` columns are optional. Dates use the `YYYY-MM-DD` format.
 
 ```csv
-date,merchant,amount,category
-2026-10-15,Trader Joe's,48.37,Groceries
-2026-10-16,Spotify,11.99,Entertainment
+date,merchant,amount,category,transaction_type
+2026-10-15,Trader Joe's,48.37,Groceries,expense
+2026-10-16,Payroll Deposit,1200.00,Income,income
 ```
 
 Common statement descriptors for Amazon, Chipotle, Spotify, Trader Joe's, Whole Foods, and Uber are normalized during creation and import. A default category is added only when the category field is empty.
@@ -143,12 +148,12 @@ Common statement descriptors for Amazon, Chipotle, Spotify, Trader Joe's, Whole 
 | `GET` | `/auth/me` | Retrieve the signed-in user |
 | `POST` | `/transactions` | Create a transaction |
 | `GET` | `/transactions` | List and filter transactions |
-| `POST` | `/transactions/import` | Import transactions from CSV |
+| `POST` | `/transactions/import` | Import transactions from CSV or XLSX |
 | `GET` | `/transactions/{id}` | Retrieve one transaction |
 | `PATCH` | `/transactions/{id}` | Update selected fields |
 | `DELETE` | `/transactions/{id}` | Delete a transaction |
-| `GET` | `/analytics/summary` | Get totals and category breakdowns |
-| `GET` | `/analytics/monthly` | Get monthly spending totals |
+| `GET` | `/analytics/summary` | Get cash-flow totals and category breakdowns |
+| `GET` | `/analytics/monthly` | Get monthly income and expense totals |
 | `GET` | `/budgets` | List monthly budgets with spending progress |
 | `PUT` | `/budgets` | Create or update a category budget |
 | `DELETE` | `/budgets/{id}` | Delete a budget |
@@ -167,7 +172,18 @@ Run a production frontend build from the `frontend` directory.
 npm run build
 ```
 
+## Docker
+
+Start PostgreSQL and the API from the project root:
+
+```powershell
+docker compose up --build
+```
+
+The API runs at `http://127.0.0.1:8001`. PostgreSQL is exposed on port `5433` so it does not conflict with a PostgreSQL service already using port `5432` on Windows. The frontend continues to run locally with `npm run dev`.
+
 ## Roadmap
 
 - Configurable categorization rules
-- Containerized local environment and cloud deployment
+- Recurring payment detection
+- Cloud deployment
