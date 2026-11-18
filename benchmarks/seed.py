@@ -8,7 +8,7 @@ from datetime import date, timedelta
 import requests
 
 base = os.getenv("BENCHMARK_BASE_URL", "http://127.0.0.1:8001")
-email = "benchmark@example.test"
+email = "benchmark@example.com"
 password = "LocalBenchmarkPassword-2026!"
 session = requests.Session()
 register = session.post(base + "/auth/register", json={"email": email, "password": password}, timeout=30)
